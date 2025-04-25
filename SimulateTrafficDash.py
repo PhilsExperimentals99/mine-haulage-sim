@@ -3,93 +3,121 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import pandas as pd
-from utils.map import ConstructMapAnnotations, ConstructPointsMap, ConstructRoads, RoadPoints 
-
-# Example data
-df = pd.DataFrame({
-    "x": [1, 2, 3, 4, 5],
-    "y1": [10, 15, 7, 10, 12],
-    "y2": [5, 8, 6, 9, 10],
-    "y3": [2, 3, 2, 5, 7]
-})
-
+from utils.map import ConstructLocationAssets, ConstructPointsMap, ConstructRoads, RoadPoints 
 
 roads = ConstructRoads("./data/Roads.csv")
 road_points = ConstructPointsMap("./data/RoadPoints.csv")
 points_map =  RoadPoints(road_points)
-annotations = ConstructMapAnnotations("./data/annotations.csv", road_points)
+assets = ConstructLocationAssets("./data/assets.csv", road_points)
 
 scatter_data = []
 road_coords = {}
 for r in roads:
     #print(r)               
-    last_point = None
     points = points_map.GetPoints(r.nodes)
-    for i, p in enumerate(points):
-        if last_point is not None:
-            x1 = [last_point.x, p.x]
-            y1 = [last_point.y, p.y]
-            scatter_data.append(go.Scatter(x=x1, y=y1, mode='lines'))            
-            #print(f'p0({last_point.x},{last_point.y}) to p1({p.x}, {p.y}))')
-            #plt.axline((last_point.x, last_point.y),(p.x, p.y))
-        last_point = p                
+    road_name = r.GetUniqueRoadName()
+    road_coords[road_name] = {'x' : [], 'y': []}
+    for i, p in enumerate(points):         
+        road_coords[road_name]['x'].append(p.x)
+        road_coords[road_name]['y'].append(p.y)                                    
 
-    # for a in annotations:
-    #     plt.text(a['text_x'], a['text_y'], a['text'], fontsize=8, color='blue')
-
-fig = go.Figure(data=scatter_data,layout=go.Layout(title='Haul Road Map',
-                                height=800,  # Set the height to 400 pixels
-                                width=1200,   # Set the width to 600 pixels                                
-                                xaxis={'title': 'X-Axis'},
-                                yaxis={'title': 'Y-Axis'}))
-
-# Invert the y-axis
-fig.update_layout(yaxis={'autorange': 'reversed'})
 
 app = dash.Dash(__name__)
-
-# app.layout = html.Div([
-#     dcc.Graph(
-#         id='multi-line-plot',
-#         figure=fig
-#     )
-# ])
-
-df = pd.DataFrame({
-    "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    "y": [3, 6, 2, 7, 10, 8, 6, 4, 7, 9]
-})
-
-
 app.layout = html.Div([
     dcc.Graph(id='animated-line-chart'),
-    dcc.Interval(id='interval-update', interval=500, n_intervals=0)  # Updates every 500ms
+    dcc.Interval(id='interval-update', interval=1000, n_intervals=0)  # Updates every 500ms
 ])
-
 
 @app.callback(
     Output('animated-line-chart', 'figure'),
     Input('interval-update', 'n_intervals')
 )
 def update_graph(n):
-    if n >= len(df):    
-        n = len(df) - 1  # Avoid exceeding dataset size
+    #print(f'move_count = {move_count}') #, move_count = {move_count}')
+    fig = go.Figure()    
+    selected_coords = road_coords[roads[2].GetUniqueRoadName()]    
+    selected_coords_2 = road_coords[roads[7].GetUniqueRoadName()]    
+    
+    if n >= len(selected_coords['x']):
+        n = len(selected_coords['x']) - 1  # Prevent exceeding dataset size
 
-    fig = go.Figure()
+    print(f'Selected Coords = {selected_coords['x']}')        
+    print(f'Length Selected Coords = {len(selected_coords['x'])}, n = {n}')        
 
-    # Full line plot
-    fig.add_trace(go.Scatter(x=df["x"], y=df["y"], mode="lines", name="Line"))
+    global_min_x = float("inf") 
+    global_max_x = float("-inf")
+    global_min_y = float("inf") 
+    global_max_y = float("-inf")
+    for r in roads:        
+        #print(f'{r.GetUniqueRoadName()}')
+        #print(f'Selected Coords ({selected_coords['x'][0]}, {selected_coord['y'][0]}) for {selected_road_name}')
+        coords = road_coords[r.GetUniqueRoadName()]
+        # Full line plot
+        fig.add_trace(go.Scatter(x=coords["x"], y =coords["y"], mode="lines", name=r.GetUniqueRoadName(), line={'width' : 4}))
+        current_min_y = min(coords['y'])  # Find min of the current list
+        global_min_y = min(global_min_y, current_min_y)
 
+        current_max_y = max(coords['y'])  # Find min of the current list
+        global_max_y = max(global_max_y, current_max_y)
+
+        current_min_x = min(coords['x'])  # Find min of the current list
+        global_min_x = min(global_min_x, current_min_x)
+
+        current_max_x = max(coords['x'])  # Find min of the current list
+        global_max_x = max(global_max_x, current_max_x)
+
+    
     # Moving point animation
-    fig.add_trace(go.Scatter(x=[df["x"][n]], y=[df["y"][n]], mode="markers",
-                             marker=dict(size=10, color="red"),
-                             name="Moving Point"))
 
-    # **Fix: Set a fixed y-axis range**
-    fig.update_layout(title="Animated Moving Point on Line Chart",
-                      xaxis_title="X-axis", yaxis_title="Y-axis",
-                      yaxis=dict(range=[df["y"].min() - 1, df["y"].max() + 1])  # Adjust padding if needed
-                      )
+    fig.add_trace(go.Scatter(x=[selected_coords["x"][n]], y=[selected_coords["y"][n]], mode="markers",
+                            marker=dict(size=4  , color="red"),
+                            name="Cat 793C-1"))
+
+    fig.add_trace(go.Scatter(x=[selected_coords_2["x"][n]], y=[selected_coords_2["y"][n]], mode="markers",
+                            marker=dict(size=4, color="blue"),
+                            name="Cat 785C-2"))                
+
+    annotations = []
+    for asset in assets:    
+        annotations.append(dict(
+                x=asset['text_x'],  # Specify the x-coordinate
+                y=asset['text_y'],  # Specify the y-coordinate
+                text=asset['name'],  # Annotation text
+                showarrow=False,  # No arrow
+                font=dict(size=8, color="blue"),  # Customize font
+                #bgcolor="white",  # Background color
+                #bordercolor="black",  # Border color
+                #borderwidth=1  # Border width
+            )
+        )
+
+    fig.update_layout(annotations=annotations)
+
+    fig.update_layout(
+        title="Haul Roads",
+        xaxis_title="X-Coords (Metres)",
+        yaxis_title="Y-Coords (Metres)",
+        yaxis=dict(
+            range=[global_min_y - 600, global_max_y + 600],  # Set a fixed y-axis range.Adjust padding if needed
+            autorange="reversed"  # reversed y-axis
+        ),
+        xaxis=dict(
+            range=[global_min_x - 300, global_max_x + 300],  # Set a fixed y-axis range.Adjust padding if needed            
+        ),
+        width=1200,
+        height=600
+    )
+
+    
+    # fig.update_layout(
+    #     title="Animated Moving Point on Multi-Line Chart",
+    #     xaxis_title="X-axis", yaxis_title="Y-axis",
+    #     yaxis=dict(
+    #         range=[df[["y1", "y2", "y3"]].min().min() - 1,
+    #                df[["y1", "y2", "y3"]].max().max() + 1],
+    #         autorange="reversed"  # **Inverts the y-axis**
+    #     )
+    # )
 
     return fig
 

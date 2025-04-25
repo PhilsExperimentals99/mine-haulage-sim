@@ -5,6 +5,10 @@ class Road:
         self.start = start
         self.end = end
         self.nodes = nodes
+        self.unique_name = self.start + ' <--> ' + self.end 
+
+    def GetUniqueRoadName(self):
+        return self.unique_name        
 
     def __str__(self):
         return f'From {self.start} to {self.end} with {len(self.nodes)} via points'  
@@ -58,7 +62,7 @@ def ConstructPointsMap(filename):
     with open(filename, "r") as file:
         for line in file:
             if len(line) > 5:
-                fields = line.split(",")
+                fields = line.split(",")                
                 print(fields)
                 id_str = fields[0].strip(' ')
                 # if isinstance(id_str, str):
@@ -71,8 +75,8 @@ def ConstructPointsMap(filename):
                 road_points[id] = RoadPoint(id,x,y,point_type,description)
     return road_points  
 
-def ConstructMapAnnotations(filename, road_points):
-    annotations = []
+def ConstructLocationAssets(filename, road_points):
+    assets = []
     with open(filename, "r") as file:
         for line in file:
             if len(line) > 1:
@@ -88,5 +92,7 @@ def ConstructMapAnnotations(filename, road_points):
                 text_x = road_point.x + offset_x
                 text_y = road_point.y + offset_y
                 text = road_point.annotation
-                annotations.append({'text': text, 'text_x' : text_x, 'text_y' : text_y, 'x' : road_point.x, 'y' : road_point.y})
-    return annotations
+                assets.append({'name': text, 'text_x' : text_x, 'text_y' : text_y, 'x' : road_point.x, 'y' : road_point.y, 'point_id' : point_id})
+    return assets
+
+
