@@ -1,13 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.map import ConstructLocationAssets, ConstructPointsMap, ConstructRoads, RoadPoints 
+from utils.map import ConstructLocationAssets, ConstructPointsMap, ConstructRoads, RoadPoints, euclidean_distance 
 
 # Define adjustable merging threshold
 MERGE_DISTANCE_THRESHOLD = 10  # You can change this value
-
-def euclidean_distance(point1, point2):
-    """Calculates Euclidean distance between two points."""
-    return np.linalg.norm(np.array(point1) - np.array(point2))
 
 def merge_close_points_0(points, threshold=MERGE_DISTANCE_THRESHOLD):
     """Merges points that are closer than the given threshold."""
@@ -92,7 +88,7 @@ roads = ConstructRoads("./data/Roads.csv")
 road_points = ConstructPointsMap("./data/RoadPoints.csv")
 points_map = RoadPoints(road_points)
 assets = ConstructLocationAssets("./data/assets.csv", road_points)
-road_points_sanitized = ConstructPointsMap("./data/RoutesCoord.cfg")
+road_points_sanitized = ConstructPointsMap("./data/RouteCoords.cfg")
 #road_map_sanitized = RoadPoints(road_points_sanitized)
 
 offset_point_list = []
