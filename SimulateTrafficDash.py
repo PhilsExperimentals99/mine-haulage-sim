@@ -5,6 +5,31 @@ import plotly.graph_objs as go
 import pandas as pd
 from utils.map import ConstructLocationAssets, ConstructPointsMap, ConstructRoads, RoadPoints 
 
+class MinMaxCoordsFinder:
+
+    def __init__(self):
+        self.min_x = float("inf") 
+        self.max_x = float("-inf")
+        self.min_y = float("inf") 
+        self.max_y = float("-inf")
+
+    def Update(self, coords):    
+        current_min_y = min(coords['y'])  # Find min of the current list
+        self.min_y = min(self.min_y, current_min_y)
+
+        current_max_y = max(coords['y'])  # Find min of the current list
+        self.max_y = max(self.max_y, current_max_y)
+
+        current_min_x = min(coords['x'])  # Find min of the current list
+        self.min_x = min(self.min_x, current_min_x)
+
+        current_max_x = max(coords['x'])  # Find min of the current list
+        self.max_x = max(self.max_x, current_max_x)
+
+    def GetResults(self):
+        return self.min_x, self.max_x, self.min_y, self.max_y        
+
+
 roads = ConstructRoads("./data/Roads.csv")
 road_points = ConstructPointsMap("./data/RoadPoints.csv")
 points_map =  RoadPoints(road_points)
@@ -33,7 +58,6 @@ app.layout = html.Div([
     Input('interval-update', 'n_intervals')
 )
 def update_graph(n):
-    #print(f'move_count = {move_count}') #, move_count = {move_count}')
     fig = go.Figure()    
     selected_coords = road_coords[roads[2].GetUniqueRoadName()]    
     selected_coords_2 = road_coords[roads[7].GetUniqueRoadName()]    
@@ -44,31 +68,14 @@ def update_graph(n):
     print(f'Selected Coords = {selected_coords['x']}')        
     print(f'Length Selected Coords = {len(selected_coords['x'])}, n = {n}')        
 
-    global_min_x = float("inf") 
-    global_max_x = float("-inf")
-    global_min_y = float("inf") 
-    global_max_y = float("-inf")
+    minMaxFinder = MinMaxCoordsFinder()
     for r in roads:        
-        #print(f'{r.GetUniqueRoadName()}')
-        #print(f'Selected Coords ({selected_coords['x'][0]}, {selected_coord['y'][0]}) for {selected_road_name}')
         coords = road_coords[r.GetUniqueRoadName()]
-        # Full line plot
-        fig.add_trace(go.Scatter(x=coords["x"], y =coords["y"], mode="lines", name=r.GetUniqueRoadName(), line={'width' : 4}))
-        current_min_y = min(coords['y'])  # Find min of the current list
-        global_min_y = min(global_min_y, current_min_y)
+        fig.add_trace(go.Scatter(x=coords["x"], y =coords["y"], mode="lines", name=r.GetUniqueRoadName(), line={'width' : 4}))        
+        fig.add_trace(go.Scatter(x=coords["x"], y =coords["y"], mode="markers", name=r.GetUniqueRoadName(), marker=dict(size=4  , color="green")))        
+        minMaxFinder.Update(coords)
 
-        current_max_y = max(coords['y'])  # Find min of the current list
-        global_max_y = max(global_max_y, current_max_y)
-
-        current_min_x = min(coords['x'])  # Find min of the current list
-        global_min_x = min(global_min_x, current_min_x)
-
-        current_max_x = max(coords['x'])  # Find min of the current list
-        global_max_x = max(global_max_x, current_max_x)
-
-    
     # Moving point animation
-
     fig.add_trace(go.Scatter(x=[selected_coords["x"][n]], y=[selected_coords["y"][n]], mode="markers",
                             marker=dict(size=4  , color="red"),
                             name="Cat 793C-1"))
@@ -92,33 +99,21 @@ def update_graph(n):
         )
 
     fig.update_layout(annotations=annotations)
-
+    map_min_x, map_max_x, map_min_y, map_max_y =  minMaxFinder.GetResults()
     fig.update_layout(
         title="Haul Roads",
         xaxis_title="X-Coords (Metres)",
         yaxis_title="Y-Coords (Metres)",
         yaxis=dict(
-            range=[global_min_y - 600, global_max_y + 600],  # Set a fixed y-axis range.Adjust padding if needed
+            range=[map_min_y - 600, map_max_y + 600],  # Set a fixed y-axis range.Adjust padding if needed
             autorange="reversed"  # reversed y-axis
         ),
         xaxis=dict(
-            range=[global_min_x - 300, global_max_x + 300],  # Set a fixed y-axis range.Adjust padding if needed            
+            range=[map_min_x - 300, map_max_x + 300],  # Set a fixed y-axis range.Adjust padding if needed            
         ),
         width=1200,
         height=600
     )
-
-    
-    # fig.update_layout(
-    #     title="Animated Moving Point on Multi-Line Chart",
-    #     xaxis_title="X-axis", yaxis_title="Y-axis",
-    #     yaxis=dict(
-    #         range=[df[["y1", "y2", "y3"]].min().min() - 1,
-    #                df[["y1", "y2", "y3"]].max().max() + 1],
-    #         autorange="reversed"  # **Inverts the y-axis**
-    #     )
-    # )
-
     return fig
 
 if __name__ == '__main__':

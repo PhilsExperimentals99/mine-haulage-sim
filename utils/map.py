@@ -1,4 +1,6 @@
 import ast
+import heapq
+import math
 
 class Road:
     def __init__(self, start, end, nodes):
@@ -57,7 +59,7 @@ def ConstructRoads(filename):
 
 
 def ConstructPointsMap(filename):
-    scale_to_metres = 3.75
+    scale_to_metres = 1 #3.75
     road_points = {}
     with open(filename, "r") as file:
         for line in file:
@@ -65,13 +67,17 @@ def ConstructPointsMap(filename):
                 fields = line.split(",")                
                 print(fields)
                 id_str = fields[0].strip(' ')
-                # if isinstance(id_str, str):
-                #     continue                
+                if id_str.startswith('#'):
+                    continue                
                 id = int(id_str)                
-                x = float(fields[1].strip(' ')) * scale_to_metres
-                y = float(fields[2].strip(' ')) * scale_to_metres
-                point_type = fields[3].strip(' ')
-                description = fields[4].strip(' ').strip('\n')
+                x = float(fields[1].strip(' ').strip('\n')) * scale_to_metres
+                y = float(fields[2].strip(' ').strip('\n')) * scale_to_metres
+                if len(fields) <= 3:
+                    point_type = 'U'
+                    description = 'Undefined'
+                else:
+                    point_type = fields[3].strip(' ')
+                    description = fields[4].strip(' ').strip('\n')
                 road_points[id] = RoadPoint(id,x,y,point_type,description)
     return road_points  
 
@@ -96,3 +102,52 @@ def ConstructLocationAssets(filename, road_points):
     return assets
 
 
+class RoadNetwork:
+    def __init__(self, constant_multiplier=1):
+        self.graph = {}
+        self.constant_multiplier = constant_multiplier
+
+    def add_segment(self, start_label, end_label, max_speed, gradient, start_coords, end_coords):
+        """ Adds a directed road segment with expected travel duration """
+        distance = math.dist(start_coords, end_coords)  # Compute real-world distance
+        duration = gradient * self.constant_multiplier * (distance / max_speed)  # Compute travel duration
+
+        if start_label not in self.graph:
+            self.graph[start_label] = []
+        self.graph[start_label].append((end_label, duration))
+
+    def dijkstra(self, start_label, target_label):
+        """ Finds shortest path using Dijkstra's algorithm with cycle prevention """
+        pq = [(0, start_label)]  # Priority queue with (cost, node)
+        durations = {node: float('inf') for node in self.graph}
+        durations[start_label] = 0
+        previous_nodes = {}
+        visited = set()  # Track processed nodes
+
+        while pq:
+            current_duration, current_node = heapq.heappop(pq)
+
+            if current_node in visited:
+                continue  # Skip re-processing completed nodes
+            
+            visited.add(current_node)
+
+            if current_node == target_label:
+                break
+
+            for neighbor, duration in self.graph.get(current_node, []):
+                total_duration = current_duration + duration
+                if total_duration < durations[neighbor]:
+                    durations[neighbor] = total_duration
+                    heapq.heappush(pq, (total_duration, neighbor))
+                    previous_nodes[neighbor] = current_node
+
+        path = []
+        node = target_label
+        while node in previous_nodes:
+            path.insert(0, node)
+            node = previous_nodes[node]
+        if path:
+            path.insert(0, start_label)
+
+        return path if path else None
