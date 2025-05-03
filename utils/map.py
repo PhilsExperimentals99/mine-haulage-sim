@@ -106,7 +106,7 @@ def ConstructRoads(filename):
             #print(line)
             fields = line.split(":")  
             start_name = fields[0].strip(' ')
-            if start_name.startswith('#'):
+            if start_name.startswith('#') or start_name == '\n':
                 continue
             nodes_str = fields[2].strip(' ')
             nodes_str = nodes_str.strip('\n')
@@ -125,7 +125,7 @@ def ConstructPointsMap(filename):
                 fields = line.split(",")                
                 print(fields)
                 id_str = fields[0].strip(' ')
-                if id_str.startswith('#'):
+                if id_str.startswith('#') or id_str == '\n':
                     continue                
                 id = int(id_str)                
                 x = float(fields[1].strip(' ').strip('\n')) * scale_to_metres
@@ -147,7 +147,7 @@ def ConstructLocationAssets(filename, road_points):
                 fields = line.split(",")
                 print(fields)
                 id_str = fields[0].strip(' ')
-                if id_str.startswith('#'):
+                if id_str.startswith('#') or id_str == '\n':
                     continue
                 point_id = int(id_str)    
                 offset_x = float(fields[1].strip(' '))
@@ -167,7 +167,7 @@ def ConstructRoads(filename):
             #print(line)
             fields = line.split(":")  
             start_name = fields[0].strip(' ')
-            if start_name.startswith('#'):
+            if start_name.startswith('#') or start_name == '\n':
                 continue
             nodes_str = fields[2].strip(' ')
             nodes_str = nodes_str.strip('\n')
@@ -185,7 +185,7 @@ def ConstructRoadPointLUT(filename):
                 fields = line.split(",")                
                 #print(fields)
                 id_str = fields[0].strip(' ')
-                if id_str.startswith('#'):
+                if id_str.startswith('#') or id_str == '\n':
                     continue                
                 id = int(id_str)                
                 x = float(fields[1].strip(' ').strip('\n')) * scale_to_metres
@@ -208,8 +208,10 @@ def ConstructRoadNetwork(filename, road_point_lut):
             #print(line)
             fields = line.split(":")  
             start_id_str = fields[0].strip(' ')            
-            if start_id_str.startswith('#'):
+            if start_id_str.startswith('#') or start_id_str == '\n':
                 continue
+            if start_id_str == '\n':
+                print('Here...')
             start_id = int(start_id_str)
             nodes_str = fields[1].strip(' ')
             nodes_str = nodes_str.strip('\n')
